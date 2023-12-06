@@ -1,0 +1,16 @@
+.accordion-row {
+  cursor: pointer;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.accordion-row:hover {
+  background-color: #f5f5f5; /* Adjust as needed */
+}
+
+.details-row {
+  background-color: #f0f0f0; /* Adjust as needed */
+}
+
+.expanded .accordion-row {
+  background-color: #e0e0e0; /* Adjust as needed */
+}
