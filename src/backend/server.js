@@ -20,11 +20,22 @@ const pool = new Pool({
 // Handling GET requests to the /api/getUserData endpoint
 app.get("/api/getUserData", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM user_data");
+    const { page, rowsPerPage } = req.query;
+    const offset = (page - 1) * rowsPerPage; // Calculate the offset
+
+    // Fetch the total count of rows
+    const totalCount = await pool.query("SELECT COUNT(*) FROM user_data");
+    const totalRows = totalCount.rows[0].count;
+
+    // Fetch the subset of rows based on pagination
+    const result = await pool.query(
+      "SELECT * FROM user_data ORDER BY id OFFSET $1 LIMIT $2",
+      [offset, rowsPerPage]
+    );
     const userData = result.rows;
 
     console.log(userData); // Log the data to inspect its structure
-    res.json(userData);
+    res.json({ userData, totalRows });
   } catch (error) {
     console.error("Error fetching user data:", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -69,9 +80,36 @@ app.post("/api/submitForm", async (req, res) => {
   }
 });
 
-// Handling GET requests to the /api/submitForm endpoint
-app.get("/api/submitForm", (req, res) => {
-  res.status(404).send("Not Found");
+// Endpoint to delete all rows
+app.delete("/api/deleteAllRows", async (req, res) => {
+  const idsToDelete = req.body.ids || [];
+
+  try {
+    // Delete rows with the specified IDs from the database
+    await pool.query("DELETE FROM user_data WHERE id = ANY($1::int[])", [
+      idsToDelete,
+    ]);
+
+    res.json({ message: "Selected rows deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting selected rows:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Endpoint to delete a specific row based on ID
+app.delete("/api/deleteRow/:id", async (req, res) => {
+  const userIdToDelete = parseInt(req.params.id);
+
+  try {
+    await pool.query("DELETE FROM user_data WHERE id = $1", [userIdToDelete]);
+    res.json({
+      message: `Row with ID ${userIdToDelete} deleted successfully.`,
+    });
+  } catch (error) {
+    console.error(`Error deleting row with ID ${userIdToDelete}:`, error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
 app.listen(port, () => {

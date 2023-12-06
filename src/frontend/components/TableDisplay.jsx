@@ -9,30 +9,56 @@ import {
   Paper,
   Checkbox,
   IconButton,
+  Box,
+  CircularProgress,
   Typography,
+  TablePagination,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 const TableDisplay = () => {
   const [data, setData] = useState([]);
   const [selectedRows, setSelectedRows] = useState([]);
-  const [expandedRows, setExpandedRows] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [totalRows, setTotalRows] = useState(0);
 
   useEffect(() => {
     fetchData();
-  }, []); // Run once when the component mounts
+  }, [page, rowsPerPage]);
 
   const fetchData = async () => {
     try {
-      const response = await fetch("http://localhost:5002/api/getUserData");
-      const userData = await response.json();
+      const response = await fetch(
+        `http://localhost:5002/api/getUserData?page=${
+          page + 1
+        }&rowsPerPage=${rowsPerPage}`
+      );
+      const { userData, totalRows } = await response.json();
 
-      console.log("userData:", userData); // Log the data to inspect its structure
-
-      setData(userData);
+      if (userData) {
+        setData(userData);
+        setTotalRows(totalRows); // Add this line to set the total count
+        setIsLoading(false);
+      }
     } catch (error) {
       console.error("Failed to fetch user data", error);
+      setIsLoading(false);
     }
+  };
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    console.log("New Rows Per Page:", newRowsPerPage);
+
+    setRowsPerPage(newRowsPerPage);
+    setPage(0); // Reset the current page to 0 when changing the rows per page
   };
 
   const handleCheckboxChange = (userId) => {
@@ -46,41 +72,53 @@ const TableDisplay = () => {
     }
   };
 
-  const handleSelectAll = (event) => {
-    event.stopPropagation();
-
-    if (selectedRows.length === data.length) {
-      // If all rows are selected, deselect all
-      setSelectedRows([]);
-    } else {
-      // If not all rows are selected, select all
-      const allUserIds = data.map((user) => user.id);
-      setSelectedRows(allUserIds);
-    }
+  const handleSelectAll = () => {
+    const allUserIds = data.map((user) => user.id);
+    setSelectedRows(allUserIds);
   };
 
-  const handleRowClick = (userId, event) => {
-    // Check if the click target is not the checkbox
-    if (event.target.tagName !== "INPUT" && event.target.type !== "checkbox") {
-      if (expandedRows.includes(userId)) {
-        setExpandedRows((prevExpanded) =>
-          prevExpanded.filter((id) => id !== userId)
-        );
+  const handleDeleteRow = async (userId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:5002/api/deleteRow/${userId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (response.ok) {
+        // If the delete request is successful, refetch data
+        fetchData();
       } else {
-        setExpandedRows((prevExpanded) => [...prevExpanded, userId]);
+        console.error(
+          `Failed to delete row with ID ${userId}:`,
+          response.statusText
+        );
       }
+    } catch (error) {
+      console.error(`Error deleting row with ID ${userId}:`, error);
     }
   };
 
-  const handleDeleteSelected = () => {
-    console.log("Deleting selected rows:", selectedRows);
-    // Implement logic to delete selected rows
-  };
+  // ... rest of the code ...
 
   return (
     <div>
       <h2>User Data</h2>
-      {data.length > 0 ? (
+      {isLoading ? (
+        <Box
+          display="flex"
+          flexDirection="column"
+          alignItems="center"
+          justifyContent="center"
+          minHeight="150px"
+        >
+          <CircularProgress variant="determinate" value={progress} />
+          <Typography variant="caption" color="textSecondary">{`${Math.round(
+            progress
+          )}%`}</Typography>
+        </Box>
+      ) : data.length > 0 ? (
         <TableContainer sx={{ overflowX: "auto" }}>
           <Table>
             <TableHead>
@@ -94,7 +132,7 @@ const TableDisplay = () => {
                       selectedRows.length > 0 &&
                       selectedRows.length < data.length
                     }
-                    onChange={(event) => handleSelectAll(event)}
+                    onChange={handleSelectAll}
                   />
                 </TableCell>
                 <TableCell>ID</TableCell>
@@ -108,82 +146,61 @@ const TableDisplay = () => {
                 <TableCell>Date of Birth</TableCell>
                 <TableCell>Bio</TableCell>
                 <TableCell>Action</TableCell>
-                {/* Add more columns as needed */}
               </TableRow>
             </TableHead>
             <TableBody>
               {data.map((user) => (
-                <React.Fragment key={user.id}>
-                  <TableRow
-                    onClick={(event) => handleRowClick(user.id, event)}
-                    className={`accordion-row ${
-                      expandedRows.includes(user.id) ? "expanded" : ""
-                    }`}
-                  >
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedRows.includes(user.id)}
-                        onChange={() => handleCheckboxChange(user.id)}
-                      />
-                    </TableCell>
-                    <TableCell>{user.id}</TableCell>
-                    <TableCell>{user.first_name}</TableCell>
-                    <TableCell>{user.last_name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.gender}</TableCell>
-                    <TableCell>{user.age}</TableCell>
-                    <TableCell>{user.country}</TableCell>
-                    <TableCell>{user.notification}</TableCell>
-                    <TableCell>{user.dob}</TableCell>
-                    <TableCell>{user.bio}</TableCell>
-                    <TableCell>
-                      <IconButton
-                        aria-label="delete"
-                        onClick={() => console.log("Delete action", user.id)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
-                    {/* Add more cells for additional columns */}
-                  </TableRow>
-                  {expandedRows.includes(user.id) && (
-                    <TableRow className="details-row">
-                      <TableCell colSpan={12}>
-                        {/* Placeholder details content */}
-                        <Typography>
-                          This is a placeholder for additional details.
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </React.Fragment>
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedRows.includes(user.id)}
+                      onChange={() => handleCheckboxChange(user.id)}
+                    />
+                  </TableCell>
+                  <TableCell>{user.id}</TableCell>
+                  <TableCell>{user.first_name}</TableCell>
+                  <TableCell>{user.last_name}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.gender}</TableCell>
+                  <TableCell>{user.age}</TableCell>
+                  <TableCell>{user.country}</TableCell>
+                  <TableCell>{user.notification}</TableCell>
+                  <TableCell>{user.dob}</TableCell>
+                  <TableCell>{user.bio}</TableCell>
+                  <TableCell>
+                    <IconButton
+                      aria-label="delete"
+                      onClick={() => handleDeleteRow(user.id)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
       ) : (
-        <p>No user data available.</p>
-      )}
-      {selectedRows.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginTop: "10px",
-          }}
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          minHeight="100px"
+          flexDirection="column"
         >
-          <Typography variant="body2" color="textSecondary">
-            {`${selectedRows.length} row${
-              selectedRows.length !== 1 ? "s" : ""
-            } selected`}
-          </Typography>
-          <IconButton
-            aria-label="delete-selected"
-            onClick={handleDeleteSelected}
-          >
-            <DeleteIcon />
-          </IconButton>
-        </div>
+          <p>No user data available.</p>
+        </Box>
+      )}
+      {data.length > 0 && (
+        <TablePagination
+          component="div"
+          count={totalRows}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          rowsPerPageOptions={[5, 10, 25, 50, 100]}
+        />
       )}
     </div>
   );
