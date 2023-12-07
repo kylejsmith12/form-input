@@ -1,7 +1,8 @@
-// src/components/TextInput.jsx
+// Importing necessary components from React and Material-UI
 import React from "react";
 import { TextField } from "@mui/material";
 
+// Functional component for a text input field
 const TextInput = ({ label, name, value, onChange, required, type }) => {
   return (
     <TextField
@@ -17,4 +18,5 @@ const TextInput = ({ label, name, value, onChange, required, type }) => {
   );
 };
 
+// Exporting the TextInput component
 export default TextInput;

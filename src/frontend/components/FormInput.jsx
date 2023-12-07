@@ -1,3 +1,4 @@
+// Importing necessary components and functions from React and Material-UI
 import React, { useState, useEffect } from "react";
 import {
   TextField,
@@ -16,12 +17,16 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
+
+// Importing custom input components
 import TextInput from "./TextInput";
 import SelectInput from "./SelectInput";
 import RadioGroupInput from "./RadioGroupInput";
 import DateInput from "./DateInput";
 
+// Functional component for the form
 const FormInput = ({ onSubmit }) => {
+  // State variables for form input values and UI feedback
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -34,8 +39,8 @@ const FormInput = ({ onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSnackbarOpen, setSnackbarOpen] = useState(false);
 
+  // useEffect to reset form values on component mount
   useEffect(() => {
-    // Reset form values when the component mounts
     setFirstName("");
     setLastName("");
     setEmail("");
@@ -47,8 +52,10 @@ const FormInput = ({ onSubmit }) => {
     setNotification("email");
   }, []); // Empty dependency array ensures this effect runs once on mount
 
+  // Event handler for text input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    // Update state based on the input field name
     if (name === "firstName") {
       setFirstName(value);
     } else if (name === "lastName") {
@@ -64,6 +71,7 @@ const FormInput = ({ onSubmit }) => {
     }
   };
 
+  // Event handler to clear all form fields
   const handleClearAll = () => {
     setFirstName("");
     setLastName("");
@@ -76,23 +84,28 @@ const FormInput = ({ onSubmit }) => {
     setNotification("email");
   };
 
+  // Event handler for dropdown (Select) change
   const handleDropdownChange = (e) => {
     setGender(e.target.value);
   };
 
+  // Event handler for notification preference change
   const handleNotificationChange = (e) => {
     setNotification(e.target.value);
   };
 
+  // Event handler for date input change
   const handleDateChange = (date) => {
     setSelectedDate(date);
   };
 
+  // Event handler for form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
+      // Sending form data to the server
       const response = await fetch("http://localhost:5002/api/submitForm", {
         method: "POST",
         headers: {
@@ -111,6 +124,7 @@ const FormInput = ({ onSubmit }) => {
         }),
       });
 
+      // Handling the server response
       if (response.ok) {
         setIsSubmitting(false);
         setSnackbarOpen(true);
@@ -124,13 +138,16 @@ const FormInput = ({ onSubmit }) => {
     }
   };
 
+  // Event handler for Snackbar close
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
   };
 
+  // Rendering the form with various input components
   return (
     <form onSubmit={handleSubmit}>
       <Grid container spacing={2}>
+        {/* Text input for First Name */}
         <Grid item xs={12} sm={6}>
           <TextInput
             label="First Name"
@@ -140,6 +157,7 @@ const FormInput = ({ onSubmit }) => {
             required
           />
         </Grid>
+        {/* Text input for Last Name */}
         <Grid item xs={12} sm={6}>
           <TextInput
             label="Last Name"
@@ -149,6 +167,7 @@ const FormInput = ({ onSubmit }) => {
             required
           />
         </Grid>
+        {/* Text input for Email */}
         <Grid item xs={12}>
           <TextInput
             label="Email"
@@ -159,6 +178,7 @@ const FormInput = ({ onSubmit }) => {
             required
           />
         </Grid>
+        {/* Dropdown (Select) input for Gender */}
         <Grid item xs={12} sm={6}>
           <SelectInput
             label="Gender"
@@ -172,6 +192,7 @@ const FormInput = ({ onSubmit }) => {
             ]}
           />
         </Grid>
+        {/* Text input for Age */}
         <Grid item xs={12} sm={6}>
           <TextInput
             label="Age"
@@ -182,6 +203,7 @@ const FormInput = ({ onSubmit }) => {
             required
           />
         </Grid>
+        {/* Text input for Country */}
         <Grid item xs={12} sm={6}>
           <TextInput
             label="Country"
@@ -191,6 +213,7 @@ const FormInput = ({ onSubmit }) => {
             required
           />
         </Grid>
+        {/* RadioGroup input for Notification Preference */}
         <Grid item xs={12} sm={6}>
           <RadioGroupInput
             label="Notification Preference"
@@ -203,6 +226,7 @@ const FormInput = ({ onSubmit }) => {
             ]}
           />
         </Grid>
+        {/* Date input for Date of Birth */}
         <Grid item xs={12} sm={6}>
           <DateInput
             label="Date of Birth"
@@ -211,6 +235,7 @@ const FormInput = ({ onSubmit }) => {
             required
           />
         </Grid>
+        {/* Multiline text input for Bio */}
         <Grid item xs={12}>
           <TextInput
             label="Bio"
@@ -222,6 +247,7 @@ const FormInput = ({ onSubmit }) => {
           />
         </Grid>
       </Grid>
+      {/* Submit button with loading spinner during submission */}
       <Button
         type="submit"
         variant="contained"
@@ -236,6 +262,7 @@ const FormInput = ({ onSubmit }) => {
           "Submit"
         )}
       </Button>
+      {/* Button to clear all form fields */}
       <Button
         variant="contained"
         color="secondary"
@@ -245,6 +272,7 @@ const FormInput = ({ onSubmit }) => {
       >
         Clear All
       </Button>
+      {/* Snackbar for displaying form submission success message */}
       <Snackbar
         open={isSnackbarOpen}
         autoHideDuration={6000}
@@ -258,4 +286,5 @@ const FormInput = ({ onSubmit }) => {
   );
 };
 
+// Exporting the FormInput component
 export default FormInput;
