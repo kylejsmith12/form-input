@@ -23,17 +23,18 @@ import debounce from "lodash.debounce";
 // Functional component for displaying user data in a table
 const TableDisplay = () => {
   // State variables for managing user data, selected rows, loading state, pagination, search, and autocomplete
-  const [data, setData] = useState([]);
-  const [selectedRows, setSelectedRows] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [progress, setProgress] = useState(0);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
-  const [totalRows, setTotalRows] = useState(0);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filteredData, setFilteredData] = useState([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [autocompleteOptions, setAutocompleteOptions] = useState([]);
+  const [data, setData] = useState([]); // User data fetched from the server
+  const [selectedRows, setSelectedRows] = useState([]); // Array of selected row IDs
+  const [isLoading, setIsLoading] = useState(true); // Loading state while fetching data
+  const [progress, setProgress] = useState(0); // Progress value for loading spinner
+  const [page, setPage] = useState(0); // Current page number for pagination
+  const [rowsPerPage, setRowsPerPage] = useState(25); // Number of rows to display per page
+  const [totalRows, setTotalRows] = useState(0); // Total number of rows available on the server
+  const [searchTerm, setSearchTerm] = useState(""); // Search term entered by the user
+  const [filteredData, setFilteredData] = useState([]); // Data displayed on the table after filtering
+  const [hasMore, setHasMore] = useState(true); // Flag indicating whether there are more rows to fetch
+  const [autocompleteOptions, setAutocompleteOptions] = useState([]); // Autocomplete suggestions for search
+  const [isAnySelected, setIsAnySelected] = useState(false); // Flag indicating whether any checkbox is selected
 
   // Function to fetch data from the server and update state
   const fetchDataAndUpdateState = async (endpoint) => {
@@ -134,7 +135,8 @@ const TableDisplay = () => {
   // Effect to fetch search data when search term, page, or rowsPerPage changes
   useEffect(() => {
     fetchSearchData(searchTerm);
-  }, [page, rowsPerPage, searchTerm, fetchSearchData]);
+    setIsAnySelected(selectedRows.length > 0);
+  }, [page, rowsPerPage, searchTerm, selectedRows, fetchSearchData]);
 
   // Event handler for changing the current page
   const handleChangePage = (event, newPage) => {
@@ -162,8 +164,45 @@ const TableDisplay = () => {
 
   // Event handler for selecting all checkboxes
   const handleSelectAll = () => {
-    const allUserIds = data.map((user) => user.id);
-    setSelectedRows(allUserIds);
+    if (selectedRows.length === filteredData.length) {
+      // All rows are selected, so clear the selection
+      setSelectedRows([]);
+    } else {
+      // Not all rows are selected, so select all rows
+      const allUserIds = filteredData.map((user) => user.id);
+      setSelectedRows(allUserIds);
+    }
+  };
+
+  // Event handler for deleting all selected rows
+  const handleDeleteAllRows = async () => {
+    try {
+      // Iterate over selectedRows and delete each row
+      for (const userId of selectedRows) {
+        const response = await fetch(
+          `http://localhost:5002/api/deleteRow/${userId}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        if (!response.ok) {
+          console.error(
+            `Failed to delete row with ID ${userId}:`,
+            response.statusText
+          );
+          // Handle error as needed
+        }
+      }
+
+      // Fetch updated data after deletion
+      fetchData();
+      // Clear selectedRows after deletion
+      setSelectedRows([]);
+    } catch (error) {
+      console.error("Error deleting rows:", error);
+      // Handle error as needed
+    }
   };
 
   // Event handler for deleting a row
@@ -189,10 +228,22 @@ const TableDisplay = () => {
     }
   };
 
+  const isAllSelected =
+    selectedRows.length > 0 && selectedRows.length === filteredData.length;
+
   // Rendering the component with Material-UI components
   return (
     <div onScroll={handleScroll}>
-      <h2>User Data</h2>
+      <Box display="flex" justifyContent="space-between" alignItems="center">
+        <Typography variant="h4">User Data</Typography>
+
+        {/* Render "Delete All" button when at least one checkbox is selected */}
+        {isAnySelected && (
+          <IconButton aria-label="delete-all" onClick={handleDeleteAllRows}>
+            <DeleteIcon />
+          </IconButton>
+        )}
+      </Box>
       {/* Autocomplete component for search */}
       <Autocomplete
         options={autocompleteOptions}
@@ -230,10 +281,7 @@ const TableDisplay = () => {
               <TableRow>
                 <TableCell>
                   <Checkbox
-                    checked={
-                      selectedRows.length === filteredData.length &&
-                      filteredData.length > 0
-                    }
+                    checked={isAllSelected}
                     indeterminate={
                       selectedRows.length > 0 &&
                       selectedRows.length < filteredData.length
